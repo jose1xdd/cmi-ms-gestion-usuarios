@@ -1,3 +1,4 @@
+import math
 from typing import Generic, TypeVar, Optional, List, Type, Union
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -80,3 +81,20 @@ class BaseRepository(IBaseRepository[T, ID], Generic[T, M, ID]):
         self.db.delete(db_obj)
         self._commit_with_handling()
         return True
+
+    def paginate(self, page: int = 1, page_size: int = 10, query=None) -> dict:
+
+        # Usa la query personalizada o la query base
+        query = query or self.db.query(self.model)
+
+        total_items = query.order_by(None).count()
+        total_pages = math.ceil(total_items / page_size) if page_size else 1
+        skip = (page - 1) * page_size
+        items = query.offset(skip).limit(page_size).all()
+
+        return {
+            "total_items": total_items,
+            "total_pages": total_pages,
+            "current_page": page,
+            "items": items
+        }

@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, Column, ForeignKey, String, Integer, Date
+from sqlalchemy import Boolean, Enum, Column, ForeignKey, String, Integer, Date
 from app.config.database import Base
 from app.persistence.model.enum import EnumDocumento, EnumEscolaridad, EnumParentesco, EnumSexo
 from sqlalchemy.orm import relationship
@@ -19,7 +19,7 @@ class Persona(Base):
     escolaridad = Column(Enum(EnumEscolaridad))
     direccion = Column(String(200))
     telefono = Column(String(20))
-
+    activo = Column(Boolean, default=True, nullable=False)
     idFamilia = Column(Integer, ForeignKey('Familia.id'))
     idParcialidad = Column(Integer, ForeignKey('Parcialidad.id'))
 

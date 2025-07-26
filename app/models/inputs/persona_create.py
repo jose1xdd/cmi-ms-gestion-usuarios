@@ -4,7 +4,7 @@ from typing import Optional
 from app.persistence.model.enum import EnumDocumento, EnumEscolaridad, EnumParentesco, EnumSexo
 
 
-class PersonaInput(BaseModel):
+class PersonaCreate(BaseModel):
     id: str = Field(max_length=20)
     tipoDocumento: EnumDocumento
     nombre: str = Field(max_length=50)
