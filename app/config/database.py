@@ -8,6 +8,7 @@ engine = create_engine(settings.database_url)
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
+    expire_on_commit=True,
     bind=engine
 )
 

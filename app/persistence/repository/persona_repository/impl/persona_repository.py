@@ -7,7 +7,7 @@ class PersonaRepository(BaseRepository, IPersonaRepository):
     def __init__(self, db: Session):
         super().__init__(Persona, db)
 
-    def find_familia_members(self, id_familia: int) -> list[Persona]:
+    def find_familia_members(self, id_familia: int) -> int:
         return (
             self.db.query(Persona)
             .filter(Persona.idFamilia == id_familia)
