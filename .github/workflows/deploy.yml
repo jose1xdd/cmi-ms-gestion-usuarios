@@ -39,7 +39,7 @@ jobs:
 
       - name: Add Git remote
         run: |
-          git remote add despliegue ssh://despliegue@148.113.175.43/var/repos/gestion-usuarios.git.git
+          git remote add despliegue ssh://despliegue@148.113.175.43/var/repos/gestion-usuarios.git
 
       - name: Push to VPS
         run: |
