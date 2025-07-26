@@ -16,10 +16,12 @@ def create_app() -> FastAPI:
 
     # Crear el container
     container = Container()
+    container.init_resources()
     container.wire(
     modules=[
         "app.routers.main_router",
         "app.services.manager",
+        "app.ioc.container"
     ]
 )
     app.container = container
