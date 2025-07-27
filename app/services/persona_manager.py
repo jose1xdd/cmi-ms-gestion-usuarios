@@ -9,10 +9,9 @@ from app.persistence.repository.parcialidad_repository.interface.interface_parci
 from app.persistence.repository.persona_repository.interface.interface_persona_repository import IPersonaRepository
 from app.persistence.repository.user_repository.interface.interface_user_repository import IUsuarioRepository
 from app.utils.exceptions_handlers.models.error_response import AppException
-from fastapi import status
 
 
-class Manager():
+class PersonaManager():
     def __init__(self,
                  usuario_repository: IUsuarioRepository,
                  persona_repository: IPersonaRepository,

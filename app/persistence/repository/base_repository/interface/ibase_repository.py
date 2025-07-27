@@ -29,4 +29,3 @@ class IBaseRepository(ABC, Generic[T, ID]):
     @abstractmethod
     def paginate(self, page: int = 1, page_size: int = 10, query=None) -> Dict[str, Union[int, List[M]]]:
         """Devuelve un diccionario con los campos: total_items, total_pages, current_page, items"""
-        pass
