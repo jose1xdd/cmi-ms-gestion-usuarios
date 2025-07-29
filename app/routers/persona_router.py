@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.models.inputs.persona_create import PersonaCreate
 from app.models.inputs.persona_update import PersonaUpdate
 from app.services.persona_manager import PersonaManager
 from app.ioc.container import get_persona_manager
+from app.utils.middlewares.validate_persona_admin import validar_persona_admin
 
 persona_router = APIRouter(prefix="/personas")
 
 
 @persona_router.post("/create", status_code=status.HTTP_201_CREATED)
-async def login(
+async def create(
         data: PersonaCreate,
         manager: PersonaManager = Depends(get_persona_manager)):
     manager.create_persona(data)
@@ -17,20 +18,22 @@ async def login(
 
 
 @persona_router.put("/{persona_id}", status_code=status.HTTP_202_ACCEPTED)
-async def login(
+async def update(
         persona_id: str,
         data: PersonaUpdate,
+        _: bool = validar_persona_admin(),
         manager: PersonaManager = Depends(get_persona_manager)):
     persona = manager.update_persona(persona_id, data)
     return {"estado": "Exitoso", "data": persona}
 
 
 @persona_router.delete("/{persona_id}", status_code=status.HTTP_200_OK)
-async def login(
+async def delete(
         persona_id: str,
         manager: PersonaManager = Depends(get_persona_manager)):
     manager.delete_persona(persona_id)
     return {"estado": "Exitoso"}
+
 
 @persona_router.get("")
 def get_personas(

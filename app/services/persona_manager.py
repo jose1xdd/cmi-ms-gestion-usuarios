@@ -35,22 +35,7 @@ class PersonaManager():
         if not familia:
             self.logger.error(f"Familia no encontrada: {data.idFamilia}")
             raise AppException("La Familia asignada no existe")
-
-        # Validar límite de miembros
-        miembros_actuales = self.persona_repository.find_familia_members(
-            data.idFamilia)
-        self.logger.info(
-            f"Miembros actuales en familia {data.idFamilia}: {miembros_actuales}/{familia.integrantes}")
-        if miembros_actuales >= familia.integrantes:
-            self.logger.error(
-                f"Se alcanzó el límite de integrantes para la familia {data.idFamilia}. "
-                f"Miembros actuales: {miembros_actuales}, Límite: {familia.integrantes}"
-            )
-            raise AppException(
-                f"Cantidad máxima de miembros alcanzada. "
-                f"Miembros actuales: {miembros_actuales}, Límite permitido: {familia.integrantes}"
-            )
-
+        familia.integrantes = familia.integrantes+1
         # Validar existencia de la parcialidad
         self.logger.info(
             f"Validando existencia de la parcialidad con ID: {data.idParcialidad}")
@@ -70,6 +55,9 @@ class PersonaManager():
         self.logger.info(f"Creando persona con ID: {data.id}")
         self.persona_repository.create(data)
         self.logger.info(f"Persona creada exitosamente: {data.id}")
+        self.logger.info(f"Cantidad de miembros de familia: {familia.id} actualizada")
+
+        self.familia_repository.update(familia.id, familia)
 
     def update_persona(self, id_persona: str, data: PersonaUpdate):
         # Validar si la persona ya existe

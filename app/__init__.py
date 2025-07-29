@@ -10,6 +10,8 @@ from app.utils.exceptions_handlers.exceptions_handlers import (
 )
 from app.utils.exceptions_handlers.models.error_response import AppException
 from app.routers.persona_router import persona_router
+from app.routers.familia_router import familia_router
+
 
 def create_app() -> FastAPI:
     app = FastAPI()
@@ -29,7 +31,7 @@ def create_app() -> FastAPI:
 
     # Registrar router
     app.include_router(persona_router, prefix="/ms-gestion-usuarios")
-
+    app.include_router(familia_router,prefix="/ms-gestion-usuarios")
     # Logging
     logging.basicConfig(
         level=logging.INFO,
