@@ -16,8 +16,8 @@ class PersonaCreate(BaseModel):
     escolaridad: EnumEscolaridad
     direccion: str = Field(max_length=200)
     telefono: str = Field(max_length=20)
-    idFamilia: int
-    idParcialidad: int
+    idFamilia: Optional[int]
+    idParcialidad: Optional[int]
 
     class Config:
         from_attributes = True  # Para convertir entre SQLAlchemy y Pydantic fácilmente
