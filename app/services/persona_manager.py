@@ -1,11 +1,9 @@
 import logging
-from typing import List
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.inputs.persona.persona_update import PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
-from app.models.outputs.persona.persona_output import PersonaOut
 from app.models.outputs.paginated_response import PaginatedPersonas
 from app.models.outputs.response_estado import EstadoResponse
 from app.persistence.model.familia import Familia
