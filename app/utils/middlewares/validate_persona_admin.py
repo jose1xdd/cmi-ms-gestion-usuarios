@@ -1,4 +1,4 @@
-from fastapi import Request, status, Depends
+from fastapi import Request, Depends
 
 from app.utils.exceptions_handlers.models.error_response import AppException
 

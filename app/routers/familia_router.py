@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.ioc.container import get_familia_manager
 from app.models.inputs.familia.familia_create import FamiliaCreate
