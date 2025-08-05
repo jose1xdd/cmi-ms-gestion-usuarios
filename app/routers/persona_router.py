@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 
-from app.models.inputs.assing_familia_users import AssingFamilia
-from app.models.inputs.persona_create import PersonaCreate
-from app.models.inputs.persona_update import PersonaUpdate
-from app.models.outputs.persona_output import PersonaOut
+from app.models.inputs.familia.assing_familia_users import AssingFamilia
+from app.models.inputs.persona.persona_create import PersonaCreate
+from app.models.inputs.persona.persona_update import PersonaUpdate
+from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
+from app.models.outputs.persona.persona_output import PersonaOut
 from app.models.outputs.response_estado import EstadoResponse
 from app.models.outputs.paginated_response import PaginatedPersonas
-from app.models.outputs.familia_asignacion_response import AsignacionFamiliaResponse
 
 from app.services.persona_manager import PersonaManager
 from app.ioc.container import get_persona_manager
@@ -52,6 +52,15 @@ def get_personas(
     manager: PersonaManager = Depends(get_persona_manager)
 ):
     return manager.get_personas(page, page_size)
+
+
+@persona_router.get("/{persona_id}", response_model=PersonaOut)
+def get_personas(
+    persona_id: str,
+    _: bool = validar_persona_admin(),
+    manager: PersonaManager = Depends(get_persona_manager)
+):
+    return manager.get_persona(persona_id)
 
 
 @persona_router.patch("/assing-family", response_model=AsignacionFamiliaResponse)

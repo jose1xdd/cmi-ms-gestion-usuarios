@@ -1,8 +1,8 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app.models.outputs.familia_output import FamiliaOut
-from app.models.outputs.persona_output import PersonaOut
+from app.models.outputs.familia.familia_output import FamiliaOut
+from app.models.outputs.persona.persona_output import PersonaOut
 
 class PaginatedPersonas(BaseModel):
     total_items: int

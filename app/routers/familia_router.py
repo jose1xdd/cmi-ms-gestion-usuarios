@@ -2,7 +2,8 @@ from fastapi import APIRouter
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.ioc.container import get_familia_manager
-from app.models.inputs.familia_create import FamiliaCreate
+from app.models.inputs.familia.familia_create import FamiliaCreate
+from app.models.outputs.familia.familia_output import FamiliaOut
 from app.models.outputs.paginated_response import PaginatedFamilias
 from app.models.outputs.response_estado import EstadoResponse
 from app.services.familia_manager import FamiliaManager
@@ -26,8 +27,15 @@ async def delete(
 
 
 @familia_router.get("", status_code=status.HTTP_200_OK, response_model=PaginatedFamilias)
-def get_personas(
+def get_familias(
         page: int = Query(1, ge=1),
         page_size: int = Query(10, le=100),
         manager: FamiliaManager = Depends(get_familia_manager)):
-    return manager.get(page, page_size)
+    return manager.get_familias(page, page_size)
+
+
+@familia_router.get("/{id}", status_code=status.HTTP_200_OK, response_model=FamiliaOut)
+def get_familia(
+        id: int,
+        manager: FamiliaManager = Depends(get_familia_manager)):
+    return manager.get_familia(id)

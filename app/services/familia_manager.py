@@ -1,6 +1,6 @@
 import logging
-from app.models.inputs.familia_create import FamiliaCreate
-from app.models.outputs.familia_output import FamiliaOut
+from app.models.inputs.familia.familia_create import FamiliaCreate
+from app.models.outputs.familia.familia_output import FamiliaOut
 from app.models.outputs.paginated_response import PaginatedFamilias
 from app.models.outputs.response_estado import EstadoResponse
 from app.persistence.model.familia import Familia
@@ -20,7 +20,8 @@ class FamiliaManager:
     def create(self, data: FamiliaCreate) -> EstadoResponse:
         if not data.idFamilia:
             familia = self.familia_repository.create(Familia(integrantes=0))
-            self.logger.info(f"Familia creada con ID auto-generado: {familia.id}")
+            self.logger.info(
+                f"Familia creada con ID auto-generado: {familia.id}")
             return EstadoResponse(
                 estado="success",
                 message="Familia creada exitosamente",
@@ -29,10 +30,12 @@ class FamiliaManager:
 
         familia_exist = self.familia_repository.get(data.idFamilia)
         if familia_exist:
-            self.logger.error(f"El número de familia ya existe: {data.idFamilia}")
+            self.logger.error(
+                f"El número de familia ya existe: {data.idFamilia}")
             raise AppException("La Familia a crear ya existe")
 
-        familia = self.familia_repository.create(Familia(integrantes=0, id=data.idFamilia))
+        familia = self.familia_repository.create(
+            Familia(integrantes=0, id=data.idFamilia))
         self.logger.info(f"Familia creada con ID específico: {data.idFamilia}")
         return EstadoResponse(
             estado="success",
@@ -53,13 +56,13 @@ class FamiliaManager:
             message="Familia eliminada exitosamente"
         )
 
-    def get(self, page: int, page_size: int) -> PaginatedFamilias:
-        self.logger.info(f"Obteniendo familias - Página: {page}, Tamaño: {page_size}")
-        result = self.familia_repository.paginate(page, page_size)
-        familias_out = [FamiliaOut.model_validate(f) for f in result["items"]]
-        return PaginatedFamilias(
-            total_items=result["total_items"],
-            current_page=result["current_page"],
-            page_size=page_size,
-            items=familias_out
-        )
+    def get_familias(self, page: int, page_size: int) -> PaginatedFamilias:
+        self.logger.info(
+            f"Obteniendo familias - Página: {page}, Tamaño: {page_size}")
+        return self.familia_repository.paginate(page, page_size)
+
+    def get_familia(self, familia_id: int) -> FamiliaOut:
+        familia = self.familia_repository.get(familia_id)
+        if familia is None:
+            raise AppException("Familia no Encontrada", 404)
+        return familia
