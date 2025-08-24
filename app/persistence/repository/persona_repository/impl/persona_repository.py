@@ -1,9 +1,11 @@
+from typing import Any, Dict
 from sqlalchemy.orm import Session, joinedload
 from app.models.outputs.persona.persona_output import PersonaOut
 from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.model.persona import Persona
 from app.persistence.repository.base_repository.impl.base_repository import BaseRepository
 from app.persistence.repository.persona_repository.interface.interface_persona_repository import IPersonaRepository
+from app.utils.util_functions import apply_filters
 
 
 class PersonaRepository(BaseRepository, IPersonaRepository):
@@ -17,12 +19,10 @@ class PersonaRepository(BaseRepository, IPersonaRepository):
             .count()
         )
 
-    def find_all_personas(self, page: int, page_size: int):
+    def find_all_personas(self, page: int, page_size: int, filters: Dict[str, Any]):
         query = (
-            self.db.query(Persona)
-            # relación definida en el modelo Persona
+            apply_filters(self.db, Persona, filters)
             .outerjoin(Persona.parcialidad)
-            # carga la relación Parcialidad
             .options(joinedload(Persona.parcialidad))
         )
         return self.paginate(page, page_size, query)

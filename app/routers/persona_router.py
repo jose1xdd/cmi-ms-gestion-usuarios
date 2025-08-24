@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_create import PersonaCreate
+from app.models.inputs.persona.persona_filter import PersonaFilter
 from app.models.inputs.persona.persona_update import PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
 from app.models.outputs.persona.persona_output import PersonaOut
@@ -49,9 +50,10 @@ async def delete(
 def get_personas(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, le=100),
+    filters: PersonaFilter = Depends(),
     manager: PersonaManager = Depends(get_persona_manager)
 ):
-    return manager.get_personas(page, page_size)
+    return manager.get_personas(page, page_size,filters.model_dump(exclude_none=True))
 
 
 @persona_router.get("/{persona_id}", response_model=PersonaOut)

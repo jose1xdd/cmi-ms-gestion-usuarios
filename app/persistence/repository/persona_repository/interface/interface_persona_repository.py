@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any, Dict
 from app.models.outputs.paginated_response import PaginatedPersonas
 from app.models.outputs.persona.persona_output import PersonaOut
 from app.persistence.model.persona import Persona
@@ -11,5 +12,5 @@ class IPersonaRepository(IBaseRepository[Persona, str], ABC):
         pass
 
     @abstractmethod
-    def find_all_personas(self, page: int, page_size: int) -> PaginatedPersonas:
+    def find_all_personas(self, page: int, page_size: int, filters: Dict[str, Any]) -> PaginatedPersonas:
         pass

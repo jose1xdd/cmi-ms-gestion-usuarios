@@ -1,5 +1,6 @@
 
 import logging
+from typing import Any, Dict
 
 from app.models.inputs.parcialidad.parcialidad_create import ParcialidadCreate
 from app.models.outputs.response_estado import EstadoResponse
@@ -35,8 +36,9 @@ class ParcialidadManager():
         return EstadoResponse(estado="Exitoso",
                               message="Parcialidad eliminada exitosamente")
 
-    def get_parcialidades(self, page: int, page_size: int):
-        parcialidades = self.parcialidad_repository.paginate(page, page_size)
+    def get_parcialidades(self, page: int, page_size: int, filters: Dict[str, Any]):
+        parcialidades = self.parcialidad_repository.find_by_params(
+            page, page_size, filters)
         return parcialidades
 
     def get_parcialidad_by_id(self, id: int):

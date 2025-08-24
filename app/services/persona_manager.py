@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_create import PersonaCreate
@@ -33,31 +34,44 @@ class PersonaManager:
     def create_persona(self, data: PersonaCreate) -> EstadoResponse:
         self.logger.info(f"Iniciando creación de persona con ID: {data.id}")
 
-        self.logger.info(f"Validando familia con ID: {data.idFamilia}")
-        familia: Familia = self.familia_repository.get(data.idFamilia)
-        if not familia:
-            self.logger.error(f"Familia no encontrada: {data.idFamilia}")
-            raise AppException("La Familia asignada no existe")
-        familia.integrantes += 1
+        # --- Validación de Familia ---
+        if data.idFamilia is not None:
+            self.logger.info(f"Validando familia con ID: {data.idFamilia}")
+            familia: Familia = self.familia_repository.get(data.idFamilia)
+            if not familia:
+                self.logger.error(f"Familia no encontrada: {data.idFamilia}")
+                raise AppException("La Familia asignada no existe")
+            familia.integrantes += 1
+        else:
+            self.logger.info("No se asignó familia a la persona")
 
-        self.logger.info(f"Validando parcialidad con ID: {data.idParcialidad}")
-        if not self.parcialidad_repository.get(data.idParcialidad):
-            self.logger.error(
-                f"Parcialidad no encontrada: {data.idParcialidad}")
-            raise AppException("Parcialidad no existente")
+        # --- Validación de Parcialidad ---
+        if data.idParcialidad is not None:
+            self.logger.info(
+                f"Validando parcialidad con ID: {data.idParcialidad}")
+            if not self.parcialidad_repository.get(data.idParcialidad):
+                self.logger.error(
+                    f"Parcialidad no encontrada: {data.idParcialidad}")
+                raise AppException("Parcialidad no existente")
+        else:
+            self.logger.info("No se asignó parcialidad a la persona")
 
+        # --- Verificar duplicado ---
         self.logger.info(
             f"Verificando existencia previa de la persona ID: {data.id}")
         if self.persona_repository.get(data.id):
             self.logger.error(f"Persona ya registrada con ID: {data.id}")
             raise AppException("Ese documento ya se encuentra registrado")
 
+        # --- Crear Persona ---
         self.logger.info(f"Creando nueva persona con ID: {data.id}")
         self.persona_repository.create(data)
-        self.familia_repository.update(familia.id, familia)
-        self.logger.info(
-            f"Persona creada y familia actualizada correctamente: {data.id}")
 
+        # Solo actualizar familia si existe
+        if data.idFamilia is not None:
+            self.familia_repository.update(familia.id, familia)
+
+        self.logger.info(f"Persona creada correctamente: {data.id}")
         return EstadoResponse(estado="Exitoso", message="Persona creada exitosamente")
 
     def update_persona(self, id_persona: str, data: PersonaUpdate) -> EstadoResponse:
@@ -94,10 +108,11 @@ class PersonaManager:
         self.logger.info(f"Persona eliminada lógicamente: {id_persona}")
         return EstadoResponse(estado="Exitoso", message="Persona eliminada exitosamente")
 
-    def get_personas(self, page: int, page_size: int) -> PaginatedPersonas:
+    def get_personas(self, page: int, page_size: int, filters: Dict[str, Any]) -> PaginatedPersonas:
         self.logger.info(
             f"Obteniendo personas: página {page}, tamaño {page_size}")
-        paginated = self.persona_repository.find_all_personas(page, page_size)
+        paginated = self.persona_repository.find_all_personas(
+            page, page_size, filters)
         return paginated
 
     def get_persona(self, id: str):

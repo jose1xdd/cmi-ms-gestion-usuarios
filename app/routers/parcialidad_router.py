@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.ioc.container import get_parcialidad_manager
 from app.models.inputs.parcialidad.parcialidad_create import ParcialidadCreate
+from app.models.inputs.parcialidad.parcialidad_filter import ParcialidadFilter
 from app.models.outputs.paginated_response import PaginatedParcialidad
 from app.models.outputs.parcialidad.parcialidad_output import ParcialidadOut
 from app.models.outputs.response_estado import EstadoResponse
@@ -32,8 +33,9 @@ def delete(
 def get_all(
         page: int = Query(1, ge=1),
         page_size: int = Query(10, le=100),
+        filters: ParcialidadFilter = Depends(),
         manager: ParcialidadManager = Depends(get_parcialidad_manager)):
-    return manager.get_parcialidades(page, page_size)
+    return manager.get_parcialidades(page, page_size, filters.model_dump(exclude_none=True))
 
 
 @parcialialidad_router.get("/{id_parcialidad}", response_model=ParcialidadOut)
@@ -50,4 +52,3 @@ def update(
         manager: ParcialidadManager = Depends(get_parcialidad_manager)):
     response = manager.update_parcialidad_by_id(id_parcialidad, data)
     return JSONResponse(content=response.model_dump(exclude_none=True), status_code=200)
-
