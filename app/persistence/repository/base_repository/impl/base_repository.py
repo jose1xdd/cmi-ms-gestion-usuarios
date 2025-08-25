@@ -1,7 +1,9 @@
 import math
 from typing import Generic, TypeVar, Optional, List, Type, Union
 from pydantic import BaseModel
+from typing import Dict, Any, Type
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.decl_api import DeclarativeMeta  # tipo de modelos Base
 
 from app.persistence.repository.base_repository.interface.ibase_repository import IBaseRepository
 
@@ -39,19 +41,20 @@ class BaseRepository(IBaseRepository[T, ID], Generic[T, M, ID]):
         return self.db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, obj_in: Union[T, M]) -> M:
-            if isinstance(obj_in, self.model):
-                db_obj = obj_in  # Ya es una instancia SQLAlchemy
+        if isinstance(obj_in, self.model):
+            db_obj = obj_in  # Ya es una instancia SQLAlchemy
+        else:
+            # Suponemos que es un Pydantic BaseModel
+            if hasattr(obj_in, "dict"):
+                obj_data = obj_in.dict(exclude_unset=True)
+                db_obj = self.model(**obj_data)
             else:
-                # Suponemos que es un Pydantic BaseModel
-                if hasattr(obj_in, "dict"):
-                    obj_data = obj_in.dict(exclude_unset=True)
-                    db_obj = self.model(**obj_data)
-                else:
-                    raise ValueError("El objeto no es ni instancia del modelo ni un esquema Pydantic.")
+                raise ValueError(
+                    "El objeto no es ni instancia del modelo ni un esquema Pydantic.")
 
-            self.db.add(db_obj)
-            self._commit_and_refresh(db_obj)
-            return db_obj
+        self.db.add(db_obj)
+        self._commit_and_refresh(db_obj)
+        return db_obj
 
     def update(self, id: ID, obj_in: Union[BaseModel, M]) -> Optional[M]:
         db_obj = self.get(id)
@@ -98,3 +101,21 @@ class BaseRepository(IBaseRepository[T, ID], Generic[T, M, ID]):
             "current_page": page,
             "items": items
         }
+
+    def apply_filters(self,
+                      session: Session,
+                      model: Type[DeclarativeMeta],
+                      filters: Dict[str, Any]
+                      ):
+        """
+        Aplica filtros dinámicos con AND.
+        Solo se consideran los filtros enviados en el diccionario.
+        """
+        query = session.query(model)
+
+        if filters:
+            for campo, valor in filters.items():
+                if hasattr(model, campo):
+                    query = query.filter(getattr(model, campo) == valor)
+
+        return query

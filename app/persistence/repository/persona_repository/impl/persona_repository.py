@@ -5,7 +5,7 @@ from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.model.persona import Persona
 from app.persistence.repository.base_repository.impl.base_repository import BaseRepository
 from app.persistence.repository.persona_repository.interface.interface_persona_repository import IPersonaRepository
-from app.utils.util_functions import apply_filters
+
 
 
 class PersonaRepository(BaseRepository, IPersonaRepository):
@@ -21,7 +21,7 @@ class PersonaRepository(BaseRepository, IPersonaRepository):
 
     def find_all_personas(self, page: int, page_size: int, filters: Dict[str, Any]):
         query = (
-            apply_filters(self.db, Persona, filters)
+            self.apply_filters(self.db, Persona, filters)
             .outerjoin(Persona.parcialidad)
             .options(joinedload(Persona.parcialidad))
         )
