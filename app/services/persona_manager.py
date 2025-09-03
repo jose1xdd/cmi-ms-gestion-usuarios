@@ -140,6 +140,7 @@ class PersonaManager:
                 self._update_familia_members(
                     persona.idFamilia, data.familia_id)
 
+            self._update_familia_members(persona.idFamilia, data.familia_id)
             persona.idFamilia = data.familia_id
             self.persona_repository.update(persona_id, persona)
             personas_asignadas.append(persona_id)

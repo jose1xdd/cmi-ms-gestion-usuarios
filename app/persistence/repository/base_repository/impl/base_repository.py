@@ -62,7 +62,7 @@ class BaseRepository(IBaseRepository[T, ID], Generic[T, M, ID]):
             return None
 
         if isinstance(obj_in, BaseModel):
-            obj_data = obj_in.dict(exclude_unset=True)
+            obj_data = obj_in.model_dump(exclude_none=True)
         else:
             # Si ya es una instancia de SQLAlchemy, convertimos a dict ignorando atributos internos
             obj_data = {

@@ -18,6 +18,6 @@ class PersonaUpdate(BaseModel):
     telefono: Optional[str] = Field(default=None, max_length=20)
     idFamilia: Optional[int] = None
     idParcialidad: Optional[int] = None
-    activo: Optional[Literal[True]] = None
     class Config:
         from_attributes = True  # Para convertir entre SQLAlchemy y Pydantic fácilmente
+        exclude_none = True
