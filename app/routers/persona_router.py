@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
+from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse
 from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.inputs.persona.persona_filter import PersonaFilter
 from app.models.inputs.persona.persona_update import PersonaUpdate
@@ -24,6 +25,15 @@ async def create(
 ):
     response = manager.create_persona(data)
     return JSONResponse(content=response.model_dump(exclude_none=True), status_code=201)
+
+
+@persona_router.post("/upload-excel", status_code=status.HTTP_201_CREATED, response_model=CargaMasivaResponse)
+async def upload_excel(
+    file: UploadFile = File(...),
+    manager: PersonaManager = Depends(get_persona_manager)
+):
+    response = manager.upload_excel(file)
+    return await response
 
 
 @persona_router.put("/{persona_id}", status_code=status.HTTP_202_ACCEPTED, response_model=EstadoResponse)
@@ -53,7 +63,7 @@ def get_personas(
     filters: PersonaFilter = Depends(),
     manager: PersonaManager = Depends(get_persona_manager)
 ):
-    return manager.get_personas(page, page_size,filters.model_dump(exclude_none=True))
+    return manager.get_personas(page, page_size, filters.model_dump(exclude_none=True))
 
 
 @persona_router.get("/{persona_id}", response_model=PersonaOut)

@@ -1,7 +1,12 @@
+import io
 import logging
-from typing import Any, Dict
+import pandas as pd
+import numpy as np
+from typing import Any, Dict, List
+from fastapi import UploadFile
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
+from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse, ErrorPersonaOut
 from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.inputs.persona.persona_update import PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
@@ -13,6 +18,7 @@ from app.persistence.repository.familia_repository.interface.interface_familia_r
 from app.persistence.repository.parcialidad_repository.interface.interface_parcialidad_repository import IParcialiadRepository
 from app.persistence.repository.persona_repository.interface.interface_persona_repository import IPersonaRepository
 from app.persistence.repository.user_repository.interface.interface_user_repository import IUsuarioRepository
+from app.utils.constans import COLUMNS_PERSONA
 from app.utils.exceptions_handlers.models.error_response import AppException
 
 
@@ -34,41 +40,14 @@ class PersonaManager:
     def create_persona(self, data: PersonaCreate) -> EstadoResponse:
         self.logger.info(f"Iniciando creación de persona con ID: {data.id}")
 
-        # --- Validación de Familia ---
-        if data.idFamilia is not None:
-            self.logger.info(f"Validando familia con ID: {data.idFamilia}")
-            familia: Familia = self.familia_repository.get(data.idFamilia)
-            if not familia:
-                self.logger.error(f"Familia no encontrada: {data.idFamilia}")
-                raise AppException("La Familia asignada no existe")
-            familia.integrantes += 1
-        else:
-            self.logger.info("No se asignó familia a la persona")
-
-        # --- Validación de Parcialidad ---
-        if data.idParcialidad is not None:
-            self.logger.info(
-                f"Validando parcialidad con ID: {data.idParcialidad}")
-            if not self.parcialidad_repository.get(data.idParcialidad):
-                self.logger.error(
-                    f"Parcialidad no encontrada: {data.idParcialidad}")
-                raise AppException("Parcialidad no existente")
-        else:
-            self.logger.info("No se asignó parcialidad a la persona")
-
-        # --- Verificar duplicado ---
-        self.logger.info(
-            f"Verificando existencia previa de la persona ID: {data.id}")
-        if self.persona_repository.get(data.id):
-            self.logger.error(f"Persona ya registrada con ID: {data.id}")
-            raise AppException("Ese documento ya se encuentra registrado")
+        familia = self._validar_persona(data)
 
         # --- Crear Persona ---
         self.logger.info(f"Creando nueva persona con ID: {data.id}")
         self.persona_repository.create(data)
 
         # Solo actualizar familia si existe
-        if data.idFamilia is not None:
+        if familia:
             self.familia_repository.update(familia.id, familia)
 
         self.logger.info(f"Persona creada correctamente: {data.id}")
@@ -158,6 +137,64 @@ class PersonaManager:
             total_no_encontradas=len(personas_no_encontradas)
         )
 
+    async def upload_excel(self, file: UploadFile) -> CargaMasivaResponse:
+        try:
+            content = await file.read()
+            df = pd.read_excel(io.BytesIO(content))
+
+            # ✅ Validar columnas
+            missing = [col for col in COLUMNS_PERSONA if col not in df.columns]
+            if missing:
+                return CargaMasivaResponse(
+                    status="error",
+                    errores=[
+                        ErrorPersonaOut(
+                            fila=0,
+                            id=None,
+                            mensaje=f"Faltan columnas en el Excel: {missing}"
+                        )
+                    ],
+                )
+
+            # ✅ Normalizar datos antes de validación
+            df["id"] = df["id"].astype(str)              # siempre string
+            df["telefono"] = df["telefono"].astype(str)  # siempre string
+            df = df.replace({np.nan: None})              # NaN → None
+
+            personas: List[PersonaCreate] = []
+            errores: List[ErrorPersonaOut] = []
+
+            for i, row in df.iterrows():
+                try:
+                    persona = PersonaCreate(**row.to_dict())
+                    self._validar_persona(persona)
+                    personas.append(persona)
+                except Exception as e:
+                    errores.append(
+                        ErrorPersonaOut(
+                            fila=i + 2,  # +2 porque Excel empieza en 1 y fila 1 es header
+                            id=str(row.get("id")) if row.get("id") else None,
+                            mensaje=str(e),
+                        )
+                    )
+
+            insertados = 0
+            if personas:
+                insertados = self.persona_repository.bulk_insert(personas)
+
+            return CargaMasivaResponse(
+                status="ok",
+                insertados=insertados,
+                total_procesados=len(personas) + len(errores),
+                errores=errores,
+            )
+
+        except Exception as e:
+            return CargaMasivaResponse(
+                status="error",
+                errores=[ErrorPersonaOut(fila=0, id=None, mensaje=str(e))],
+            )
+
     def _update_familia_members(self, id_familia_old: int, id_familia_new: int):
         if id_familia_new is not None and id_familia_old != id_familia_new:
             self.logger.info(
@@ -189,3 +226,41 @@ class PersonaManager:
 
             self.logger.info(
                 f"Actualización de familias completada: {id_familia_old} -> {id_familia_new}")
+
+    def _validar_persona(self, data: PersonaCreate) -> Familia | None:
+        """
+        Valida reglas de negocio antes de crear una Persona.
+        Retorna la familia actualizada (si aplica), o None.
+        """
+        familia = None
+
+        # --- Validación de Familia ---
+        if data.idFamilia is not None:
+            self.logger.info(f"Validando familia con ID: {data.idFamilia}")
+            familia = self.familia_repository.get(data.idFamilia)
+            if not familia:
+                self.logger.error(f"Familia no encontrada: {data.idFamilia}")
+                raise AppException("La Familia asignada no existe")
+            familia.integrantes += 1
+        else:
+            self.logger.info("No se asignó familia a la persona")
+
+        # --- Validación de Parcialidad ---
+        if data.idParcialidad is not None:
+            self.logger.info(
+                f"Validando parcialidad con ID: {data.idParcialidad}")
+            if not self.parcialidad_repository.get(data.idParcialidad):
+                self.logger.error(
+                    f"Parcialidad no encontrada: {data.idParcialidad}")
+                raise AppException("Parcialidad no existente")
+        else:
+            self.logger.info("No se asignó parcialidad a la persona")
+
+        # --- Verificar duplicado ---
+        self.logger.info(
+            f"Verificando existencia previa de la persona ID: {data.id}")
+        if self.persona_repository.get(data.id):
+            self.logger.error(f"Persona ya registrada con ID: {data.id}")
+            raise AppException("Ese documento ya se encuentra registrado")
+
+        return familia

@@ -1,11 +1,11 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 from sqlalchemy.orm import Session, joinedload
+from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.outputs.persona.persona_output import PersonaOut
 from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.model.persona import Persona
 from app.persistence.repository.base_repository.impl.base_repository import BaseRepository
 from app.persistence.repository.persona_repository.interface.interface_persona_repository import IPersonaRepository
-
 
 
 class PersonaRepository(BaseRepository, IPersonaRepository):
@@ -26,3 +26,8 @@ class PersonaRepository(BaseRepository, IPersonaRepository):
             .options(joinedload(Persona.parcialidad))
         )
         return self.paginate(page, page_size, query)
+
+    def bulk_insert(self, personas: List[PersonaCreate]) -> int:
+        for persona in personas:
+            self.create(persona)
+        return len(personas)
