@@ -1,11 +1,16 @@
 
+import io
 import logging
-from typing import Any, Dict
-
+import pandas as pd
+import numpy as np
+from fastapi import UploadFile
+from typing import Any, Dict, List
 from app.models.inputs.parcialidad.parcialidad_create import ParcialidadCreate
+from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse, ErrorPersonaOut
 from app.models.outputs.response_estado import EstadoResponse
 from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.repository.parcialidad_repository.interface.interface_parcialidad_repository import IParcialiadRepository
+from app.utils.constans import COLUMNS_PARCIALIDAD
 from app.utils.exceptions_handlers.models.error_response import AppException
 
 
@@ -18,10 +23,7 @@ class ParcialidadManager():
         self.logger: logging.Logger = logger
 
     def create(self, data: ParcialidadCreate):
-        parcialidad = self.parcialidad_repository.find_by_name(
-            data.nombre_parcialidad)
-        if parcialidad is not None:
-            raise AppException("ya existe una parcialidad con ese nombre")
+        self._validar_parcialidad(data)
         self.parcialidad_repository.create(
             Parcialidad(nombre=data.nombre_parcialidad))
         return EstadoResponse(estado="Exitoso",
@@ -58,3 +60,69 @@ class ParcialidadManager():
         parcialidad.nombre = parcialidad_data.nombre_parcialidad
         self.parcialidad_repository.update(id, parcialidad)
         return EstadoResponse(estado="Exitoso", message="Parcialidad actualizada exitosamente")
+
+    async def upload_excel(self, file: UploadFile) -> CargaMasivaResponse:
+        try:
+            content = await file.read()
+            df = pd.read_excel(io.BytesIO(content))
+
+            # ✅ Validar columnas requeridas
+            missing = [
+                col for col in COLUMNS_PARCIALIDAD if col not in df.columns]
+            if missing:
+                return CargaMasivaResponse(
+                    status="error",
+                    errores=[
+                        ErrorPersonaOut(
+                            fila=0,
+                            id=None,
+                            mensaje=f"Faltan columnas en el Excel: {missing}"
+                        )
+                    ],
+                )
+
+            df = df.replace({np.nan: None})  # NaN → None
+
+            parcialidades: List[ParcialidadCreate] = []
+            errores: List[ErrorPersonaOut] = []
+
+            for i, row in df.iterrows():
+                try:
+                    data = ParcialidadCreate(**row.to_dict())
+                    self._validar_parcialidad(data)
+                    parcialidades.append(Parcialidad(
+                        nombre=data.nombre_parcialidad))
+
+                except Exception as e:
+                    errores.append(
+                        ErrorPersonaOut(
+                            fila=i + 2,  # Excel fila
+                            id=None,
+                            mensaje=str(e),
+                        )
+                    )
+
+            insertados = 0
+            if parcialidades:
+                insertados = self.parcialidad_repository.bulk_insert(
+                    parcialidades)
+
+            return CargaMasivaResponse(
+                status="ok",
+                insertados=insertados,
+                total_procesados=len(parcialidades) + len(errores),
+                errores=errores,
+            )
+
+        except Exception as e:
+            return CargaMasivaResponse(
+                status="error",
+                errores=[ErrorPersonaOut(fila=0, id=None, mensaje=str(e))],
+            )
+
+    def _validar_parcialidad(self, data: ParcialidadCreate) -> None:
+        parcialidad = self.parcialidad_repository.find_by_name(
+            data.nombre_parcialidad)
+        if parcialidad is not None:
+            raise AppException(
+                f"Ya existe una parcialidad con el nombre '{data.nombre_parcialidad}'")

@@ -14,3 +14,7 @@ class IParcialiadRepository(IBaseRepository[Parcialidad, int], ABC):
     @abstractmethod
     def find_by_params(self, page: int, page_size: int, filters: Dict[str, Any]) -> PaginatedParcialidad:
         pass
+
+    @abstractmethod
+    def bulk_insert(self, parcialidades) -> int:
+        pass

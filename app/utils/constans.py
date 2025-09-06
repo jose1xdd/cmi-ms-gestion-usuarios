@@ -12,3 +12,4 @@ COLUMNS_PERSONA = [
     "direccion",
     "telefono",
 ]
+COLUMNS_PARCIALIDAD = ["nombre_parcialidad"]

@@ -11,7 +11,7 @@ from app.utils.exceptions_handlers.exceptions_handlers import (
 from app.utils.exceptions_handlers.models.error_response import AppException
 from app.routers.persona_router import persona_router
 from app.routers.familia_router import familia_router
-from app.routers.parcialidad_router import parcialialidad_router
+from app.routers.parcialidad_router import parcialidad_router
 
 def create_app() -> FastAPI:
     app = FastAPI()
@@ -34,7 +34,7 @@ def create_app() -> FastAPI:
     routers = [
         persona_router,
         familia_router,
-        parcialialidad_router
+        parcialidad_router
     ]
     for router in routers:
         app.include_router(router, prefix="/ms-gestion-usuarios")

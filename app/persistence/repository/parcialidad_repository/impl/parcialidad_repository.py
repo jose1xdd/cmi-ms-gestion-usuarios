@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 from sqlalchemy.orm import Session
 from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.repository.base_repository.impl.base_repository import BaseRepository
@@ -22,3 +22,8 @@ class ParcialidadRepository(BaseRepository, IParcialiadRepository):
             self.apply_filters(self.db, Parcialidad, filters)
         )
         return self.paginate(page, page_size, query)
+
+    def bulk_insert(self, parcialidades) -> int:
+        for parcialidad in parcialidades:
+            self.create(parcialidad)
+        return len(parcialidades)
