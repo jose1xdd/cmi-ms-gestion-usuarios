@@ -8,6 +8,7 @@ from fastapi import UploadFile
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse, ErrorPersonaOut
 from app.models.inputs.persona.persona_create import PersonaCreate
+from app.models.inputs.persona.persona_create_excel import PersonaCreateExcel
 from app.models.inputs.persona.persona_update import PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
 from app.models.outputs.paginated_response import PaginatedPersonas
@@ -159,6 +160,7 @@ class PersonaManager:
             # ✅ Normalizar datos antes de validación
             df["id"] = df["id"].astype(str)              # siempre string
             df["telefono"] = df["telefono"].astype(str)  # siempre string
+            df["familia"] = df["familia"].astype(int)  # siempre string
             df = df.replace({np.nan: None})              # NaN → None
 
             personas: List[PersonaCreate] = []
@@ -166,9 +168,15 @@ class PersonaManager:
 
             for i, row in df.iterrows():
                 try:
-                    persona = PersonaCreate(**row.to_dict())
-                    self._validar_persona(persona)
-                    personas.append(persona)
+                    persona = PersonaCreateExcel(**row.to_dict())
+                    parcialidad = self.parcialidad_repository.find_by_name(
+                        persona.parcialidad)
+                    persona_create = PersonaCreate(**persona.model_dump())
+                    if parcialidad is not None:
+                        persona_create.idParcialidad = parcialidad.id
+                    persona_create.idFamilia = persona.familia
+                    self._validar_persona(persona_create)
+                    personas.append(persona_create)
                 except Exception as e:
                     errores.append(
                         ErrorPersonaOut(

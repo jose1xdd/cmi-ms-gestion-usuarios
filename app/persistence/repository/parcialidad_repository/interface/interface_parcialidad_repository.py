@@ -18,3 +18,7 @@ class IParcialiadRepository(IBaseRepository[Parcialidad, int], ABC):
     @abstractmethod
     def bulk_insert(self, parcialidades) -> int:
         pass
+
+    @abstractmethod
+    def find_by_name(self, name: str) -> Parcialidad:
+        pass

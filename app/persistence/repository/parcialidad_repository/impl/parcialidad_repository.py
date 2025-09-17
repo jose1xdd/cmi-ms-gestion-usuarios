@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.persistence.model.parcialidad import Parcialidad
 from app.persistence.repository.base_repository.impl.base_repository import BaseRepository
 from app.persistence.repository.parcialidad_repository.interface.interface_parcialidad_repository import IParcialiadRepository
@@ -27,3 +28,13 @@ class ParcialidadRepository(BaseRepository, IParcialiadRepository):
         for parcialidad in parcialidades:
             self.create(parcialidad)
         return len(parcialidades)
+
+    def find_by_name(self, name: str) -> Parcialidad:
+        # Buscar coincidencias parciales
+        return (
+            self.db.query(Parcialidad)
+            .filter(Parcialidad.nombre.ilike(f"%{name}%"))
+            # Ordenamos por la posición donde aparece el texto y la longitud del nombre
+            .order_by(func.locate(name, Parcialidad.nombre), func.length(Parcialidad.nombre))
+            .first()
+        )

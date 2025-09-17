@@ -11,6 +11,8 @@ COLUMNS_PERSONA = [
     "escolaridad",
     "direccion",
     "telefono",
+    "familia",
+    "parcialidad"
 ]
 COLUMNS_PARCIALIDAD = ["nombre_parcialidad"]
 COLUMNS_FAMILIA = ["idFamilia"]
