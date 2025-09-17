@@ -13,3 +13,4 @@ COLUMNS_PERSONA = [
     "telefono",
 ]
 COLUMNS_PARCIALIDAD = ["nombre_parcialidad"]
+COLUMNS_FAMILIA = ["idFamilia"]

@@ -1,9 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 
 from app.ioc.container import get_familia_manager
 from app.models.inputs.familia.familia_create import FamiliaCreate
+from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse
 from app.models.outputs.familia.familia_output import FamiliaOut
 from app.models.outputs.paginated_response import PaginatedFamilias
 from app.models.outputs.response_estado import EstadoResponse
@@ -19,6 +20,15 @@ async def create(
         manager: FamiliaManager = Depends(get_familia_manager)):
     response = manager.create(data)
     return JSONResponse(content=response.model_dump(exclude_none=True), status_code=201)
+
+@familia_router.post("/upload-excel", status_code=status.HTTP_201_CREATED,
+                    response_model=CargaMasivaResponse)
+async def upload_excel(
+        file: UploadFile = File(...),
+        manager: FamiliaManager = Depends(get_familia_manager)):
+    response = manager.upload_excel(file)
+    return await response
+
 
 @familia_router.delete("/{id_familia}", status_code=status.HTTP_200_OK, response_model=EstadoResponse)
 async def delete(
