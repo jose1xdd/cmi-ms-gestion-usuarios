@@ -34,3 +34,7 @@ class EnumEscolaridad(Enum):
     PR = "PR"   # Primaria
     SE = "SE"   # Secundaria
     UN = "UN"   # Universitaria
+
+class EnumEstadoFamilia(str, Enum):
+    ACTIVA = "ACTIVA"
+    INACTIVA = "INACTIVA"

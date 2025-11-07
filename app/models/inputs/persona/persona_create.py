@@ -5,7 +5,10 @@ from app.persistence.model.enum import EnumDocumento, EnumEscolaridad, EnumParen
 
 
 class PersonaCreate(BaseModel):
-    id: str = Field(max_length=20)
+    """
+    Modelo de entrada para crear una Persona.
+    """
+    id: str = Field(max_length=36, description="Documento o identificador único")
     tipoDocumento: EnumDocumento
     nombre: str = Field(max_length=50)
     apellido: str = Field(max_length=50)
@@ -16,8 +19,10 @@ class PersonaCreate(BaseModel):
     escolaridad: EnumEscolaridad
     direccion: str = Field(max_length=200)
     telefono: str = Field(max_length=20)
-    idFamilia: Optional[int] = None
-    idParcialidad: Optional[int] = None
+    idFamilia: int = Field(default=None, description="ID de la familia a la que pertenece")
+    idParcialidad: int = Field(default=None, description="ID de la parcialidad")
+    fechaDefuncion: Optional[date] = Field(default=None, description="Fecha de defunción si la persona ha fallecido")
 
     class Config:
-        from_attributes = True  # Para convertir entre SQLAlchemy y Pydantic fácilmente
+        from_attributes = True
+        exclude_none = True

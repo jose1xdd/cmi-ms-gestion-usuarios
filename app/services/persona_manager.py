@@ -2,15 +2,16 @@ import io
 import logging
 import pandas as pd
 import numpy as np
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from fastapi import UploadFile
 
 from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse, ErrorPersonaOut
 from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.inputs.persona.persona_create_excel import PersonaCreateExcel
-from app.models.inputs.persona.persona_update import PersonaUpdate
+from app.models.inputs.persona.persona_update import PersonaDefuncion, PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
+from app.models.outputs.familia.familia_output import FamiliaResumenOut
 from app.models.outputs.paginated_response import PaginatedPersonas
 from app.models.outputs.response_estado import EstadoResponse
 from app.persistence.model.familia import Familia
@@ -32,24 +33,20 @@ class PersonaManager:
         parcialidad_repository: IParcialiadRepository,
         logger: logging.Logger,
     ):
-        self.usuario_repository = usuario_repository
-        self.persona_repository = persona_repository
-        self.familia_repository = familia_repository
-        self.parcialidad_repository = parcialidad_repository
+        self.usuario_repository:IUsuarioRepository = usuario_repository
+        self.persona_repository:IPersonaRepository = persona_repository
+        self.familia_repository:IFamiliaRepository = familia_repository
+        self.parcialidad_repository:IParcialiadRepository = parcialidad_repository
         self.logger = logger
 
     def create_persona(self, data: PersonaCreate) -> EstadoResponse:
         self.logger.info(f"Iniciando creación de persona con ID: {data.id}")
 
-        familia = self._validar_persona(data)
+        self._validar_persona(data)
 
         # --- Crear Persona ---
         self.logger.info(f"Creando nueva persona con ID: {data.id}")
         self.persona_repository.create(data)
-
-        # Solo actualizar familia si existe
-        if familia:
-            self.familia_repository.update(familia.id, familia)
 
         self.logger.info(f"Persona creada correctamente: {data.id}")
         return EstadoResponse(estado="Exitoso", message="Persona creada exitosamente")
@@ -61,8 +58,6 @@ class PersonaManager:
         if not persona:
             self.logger.error(f"Persona no encontrada con ID: {id_persona}")
             raise AppException("Esa persona no está registrada")
-
-        self._update_familia_members(persona.idFamilia, data.idFamilia)
 
         self.logger.info(f"Actualizando datos de persona con ID: {id_persona}")
         self.persona_repository.update(id_persona, data)
@@ -79,7 +74,6 @@ class PersonaManager:
 
         persona.activo = False
         familia: Familia = self.familia_repository.get(persona.idFamilia)
-        familia.integrantes -= 1
 
         self.logger.info(
             f"Actualizando familia {familia.id} al eliminar persona")
@@ -107,6 +101,10 @@ class PersonaManager:
 
         personas_no_encontradas = []
         personas_asignadas = []
+        familia = self.familia_repository.get(data.familia_id)
+        if not familia:
+            self.logger.error(f"Familia no encontrada: {data.familia_id}")
+            raise AppException("La Familia asignada no existe")
 
         for persona_id in data.personas_id:
             self.logger.info(f"Procesando persona: {persona_id}")
@@ -116,11 +114,6 @@ class PersonaManager:
                 personas_no_encontradas.append(persona_id)
                 continue
 
-            if persona.idFamilia is not None:
-                self._update_familia_members(
-                    persona.idFamilia, data.familia_id)
-
-            self._update_familia_members(persona.idFamilia, data.familia_id)
             persona.idFamilia = data.familia_id
             self.persona_repository.update(persona_id, persona)
             personas_asignadas.append(persona_id)
@@ -136,6 +129,39 @@ class PersonaManager:
             personas_no_encontradas=personas_no_encontradas,
             total_asignadas=len(personas_asignadas),
             total_no_encontradas=len(personas_no_encontradas)
+        )
+
+    def unassign_familia_persona(self, persona_id: str) -> EstadoResponse:
+        """
+        Desasigna a una persona de cualquier familia (pone idFamilia = NULL).
+        Retorna un EstadoResponse.
+        """
+        self.logger.info(
+            f"[PersonaManager] Eliminando asociación familiar para persona {persona_id}")
+
+        persona = self.persona_repository.get(persona_id)
+        if not persona:
+            self.logger.warning(
+                f"[PersonaManager] Persona no encontrada: {persona_id}")
+            raise AppException("La persona indicada no existe")
+
+        if persona.idFamilia is None:
+            self.logger.info(
+                f"[PersonaManager] Persona {persona_id} ya no pertenece a ninguna familia")
+            return EstadoResponse(
+                estado="Exitoso",
+                message=f"La persona {persona_id} no pertenece a ninguna familia"
+            )
+
+        persona.idFamilia = None
+        self.persona_repository.update(persona_id, persona)
+
+        self.logger.info(
+            f"[PersonaManager] Persona {persona_id} desasignada correctamente de su familia")
+
+        return EstadoResponse(
+            estado="Exitoso",
+            message=f"Persona {persona_id} desasignada exitosamente de su familia"
         )
 
     async def upload_excel(self, file: UploadFile) -> CargaMasivaResponse:
@@ -203,38 +229,42 @@ class PersonaManager:
                 errores=[ErrorPersonaOut(fila=0, id=None, mensaje=str(e))],
             )
 
-    def _update_familia_members(self, id_familia_old: int, id_familia_new: int):
-        if id_familia_new is not None and id_familia_old != id_familia_new:
-            self.logger.info(
-                f"Actualizando miembros entre familias: {id_familia_old} -> {id_familia_new}")
-            familia_new = self.familia_repository.get(id_familia_new)
+    def registrar_defuncion(self, data: PersonaDefuncion) -> EstadoResponse:
+        """
+        Registra la fecha de defunción de una persona.
+        """
+        self.logger.info(
+            f"[PersonaManager] Registrando defunción para persona {data.id}")
 
-            if familia_new is None:
-                self.logger.error(f"Familia no encontrada: {id_familia_new}")
-                raise AppException("La Familia asignada no existe")
+        persona = self.persona_repository.get(data.id)
+        if not persona:
+            self.logger.warning(
+                f"[PersonaManager] Persona no encontrada: {data.id}")
+            raise AppException("La persona indicada no existe")
 
-            if id_familia_old is None:
-                familia_new.integrantes += 1
-                self.logger.info(
-                    f"Agregando miembro a nueva familia ID: {id_familia_new}")
-                self.familia_repository.update(id_familia_new, familia_new)
-                return
+        # Validar que no se haya registrado ya
+        if persona.fechaDefuncion:
+            self.logger.warning(
+                f"[PersonaManager] La persona {data.id} ya tiene registrada una fecha de defunción")
+            raise AppException(
+                "La persona ya tiene registrada una fecha de defunción")
 
-            familia_old = self.familia_repository.get(id_familia_old)
-            familia_old.integrantes -= 1
-            familia_new.integrantes += 1
+        persona.fechaDefuncion = data.fechaDefuncion
+        self.persona_repository.update(data.id, persona)
 
-            self.logger.info(
-                f"Actualizando familia original ID: {id_familia_old}")
-            self.familia_repository.update(id_familia_old, familia_old)
+        self.logger.info(
+            f"[PersonaManager] Fecha de defunción registrada para persona {data.id}")
 
-            self.logger.info(
-                f"Actualizando nueva familia ID: {id_familia_new}")
-            self.familia_repository.update(id_familia_new, familia_new)
-
-            self.logger.info(
-                f"Actualización de familias completada: {id_familia_old} -> {id_familia_new}")
-
+        return EstadoResponse(
+            estado="Exitoso",
+            message=f"Fecha de defunción registrada para la persona {data.id}"
+        )
+    def get_familia_resumen(self, id_familia: int) -> FamiliaResumenOut:
+        """
+        Retorna la información resumen de una familia.
+        """
+        self.logger.info(f"[FamiliaManager] Consultando resumen de familia {id_familia}")
+        return self.familia_repository.get_familia_resumen(id_familia)
     def _validar_persona(self, data: PersonaCreate) -> Familia | None:
         """
         Valida reglas de negocio antes de crear una Persona.
@@ -249,7 +279,6 @@ class PersonaManager:
             if not familia:
                 self.logger.error(f"Familia no encontrada: {data.idFamilia}")
                 raise AppException("La Familia asignada no existe")
-            familia.integrantes += 1
         else:
             self.logger.info("No se asignó familia a la persona")
 

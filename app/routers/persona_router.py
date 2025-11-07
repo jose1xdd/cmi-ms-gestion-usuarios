@@ -5,7 +5,7 @@ from app.models.inputs.familia.assing_familia_users import AssingFamilia
 from app.models.inputs.persona.persona_carga_masiva import CargaMasivaResponse
 from app.models.inputs.persona.persona_create import PersonaCreate
 from app.models.inputs.persona.persona_filter import PersonaFilter
-from app.models.inputs.persona.persona_update import PersonaUpdate
+from app.models.inputs.persona.persona_update import PersonaDefuncion, PersonaUpdate
 from app.models.outputs.familia.familia_asignacion_response import AsignacionFamiliaResponse
 from app.models.outputs.persona.persona_output import PersonaOut
 from app.models.outputs.response_estado import EstadoResponse
@@ -81,3 +81,29 @@ def assing_family_users(
     manager: PersonaManager = Depends(get_persona_manager)
 ):
     return manager.assing_familia_persona(data)
+
+
+@persona_router.patch(
+    "/unassign-family/{persona_id}",
+    response_model=EstadoResponse,
+    summary="Saca una persona de su familia (pone idFamilia = NULL)"
+)
+def unassign_family_user(
+    persona_id: str,
+    manager: PersonaManager = Depends(get_persona_manager)
+):
+    response = manager.unassign_familia_persona(persona_id)
+    return JSONResponse(content=response.model_dump(exclude_none=True), status_code=200)
+
+
+@persona_router.patch(
+    "/register-defuncion",
+    response_model=EstadoResponse,
+    summary="Registra la fecha de defunción de una persona"
+)
+def register_defuncion(
+    data: PersonaDefuncion,
+    manager: PersonaManager = Depends(get_persona_manager)
+):
+    response = manager.registrar_defuncion(data)
+    return JSONResponse(content=response.model_dump(exclude_none=True), status_code=200)

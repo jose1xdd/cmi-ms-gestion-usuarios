@@ -45,7 +45,8 @@ def get_familia_manager(
     factory = RepositoryFactory(db=db)
     return FamiliaManager(
         logger=logger,
-        familia_repository=factory.get_repository(IFamiliaRepository)
+        familia_repository=factory.get_repository(IFamiliaRepository),
+        persona_repository=factory.get_repository(IPersonaRepository)
     )
 
 
