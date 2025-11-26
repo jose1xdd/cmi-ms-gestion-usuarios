@@ -60,7 +60,6 @@ def get_personas(
 @persona_router.get("/{persona_id}", response_model=PersonaOut)
 def get_personas(
     persona_id: str,
-    _: bool = validar_persona_admin(),
     manager: PersonaManager = Depends(get_persona_manager)
 ):
     return manager.get_persona(persona_id)
