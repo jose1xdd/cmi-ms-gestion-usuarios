@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, TIMESTAMP, func
 from app.config.database import Base
 from sqlalchemy.orm import relationship
 from app.persistence.model.enum import EnumEstadoFamilia
@@ -12,6 +12,14 @@ class Familia(Base):
         String(36), ForeignKey('Persona.id'), nullable=True)
     estado = Column(Enum(EnumEstadoFamilia),
                     default=EnumEstadoFamilia.ACTIVA, nullable=False)
+
+    # Nuevo campo: fecha de creación automática
+    fechaCreacion = Column(
+        TIMESTAMP,
+        nullable=False,
+        server_default=func.now()  # MySQL genera la fecha automáticamente
+    )
+
     # Relaciones
     personas = relationship(
         "Persona",
@@ -32,5 +40,6 @@ class Familia(Base):
         return {
             "id": self.id,
             "representanteId": self.representanteId,
-            "estado": self.estado.value if self.estado else None
+            "estado": self.estado.value if self.estado else None,
+            "fechaCreacion": str(self.fechaCreacion) if self.fechaCreacion else None
         }
