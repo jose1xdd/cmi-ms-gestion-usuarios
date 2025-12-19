@@ -114,7 +114,7 @@ class FamiliaManager:
             )
             raise AppException("Familia no encontrada", 404)
 
-        # Manejo del líder (asignar o remover)
+        # Manejo del líder (asignar o remov er)
         self._set_lider(
             familia_id=request.familiaId,
             representante_id=request.representanteId
