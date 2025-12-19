@@ -171,7 +171,7 @@ class FamiliaManager:
     def get_familia(self, familia_id: int) -> FamiliaOut:
         self.logger.info(
             f"[FamiliaManager] Buscando familia con ID: {familia_id}")
-        familia = self.familia_repository.get(familia_id)
+        familia = self.familia_repository.get_familia_by_id(familia_id)
 
         if familia is None:
             self.logger.warning(

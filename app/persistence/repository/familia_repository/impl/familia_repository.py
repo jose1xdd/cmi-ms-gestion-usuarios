@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import or_, func, text, case
+from sqlalchemy import and_, or_, func, text, case
 from sqlalchemy.orm import Session, aliased, joinedload
 from app.models.inputs.familia.familia_create import FamiliaCreate
 from app.models.outputs.familia.familia_output import FamiliaDataLeader, FamiliaOut, FamiliaResumenOut
@@ -18,6 +18,48 @@ class FamiliaRepository(BaseRepository, IFamiliaRepository):
     def __init__(self, db: Session):
         # Llamar al constructor de la clase base
         super().__init__(Familia, db)
+
+    def get_familia_by_id(self, id_familia: int) -> FamiliaOut:
+        representante = aliased(Persona)
+
+        # Query principal
+        familia = (
+            self.db.query(Familia)
+            .outerjoin(
+                MiembroFamilia,
+                and_(
+                    MiembroFamilia.familiaId == Familia.id,
+                    MiembroFamilia.esRepresentante == True,
+                    MiembroFamilia.activo == True,
+                )
+            )
+            .outerjoin(
+                representante,
+                representante.id == MiembroFamilia.personaId
+            )
+            .filter(Familia.id == id_familia)
+            .first()
+        )
+
+        if not familia:
+            return None
+
+        # Obtener el miembro líder activo
+        miembro_lider = next(
+            (m for m in familia.miembros if m.esRepresentante and m.activo), None
+        )
+
+        representante_id = miembro_lider.personaId if miembro_lider else None
+        persona_obj = PersonaOut.from_orm(
+            miembro_lider.persona) if miembro_lider else None
+
+        return FamiliaOut(
+            id=familia.id,
+            estado=familia.estado,
+            fechaCreacion=familia.fechaCreacion,
+            representanteId=representante_id,
+            representante=persona_obj,
+        )
 
     def get_familias_con_lider(self, page: int, page_size: int):
         representante = aliased(Persona)

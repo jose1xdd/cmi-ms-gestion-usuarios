@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from app.models.inputs.familia.familia_create import FamiliaCreate
-from app.models.outputs.familia.familia_output import FamiliaResumenOut
+from app.models.outputs.familia.familia_output import FamiliaOut, FamiliaResumenOut
 from app.models.outputs.paginated_response import PaginatedFamilias
 from app.persistence.model.enum import EnumEstadoFamilia
 from app.persistence.model.familia import Familia
@@ -51,4 +51,7 @@ class IFamiliaRepository(IBaseRepository[Familia, int], ABC):
             parcialidad_id: int | None = None,
             rango_miembros: str | None = None,
             estado: EnumEstadoFamilia | None = None):
+        pass
+    @abstractmethod
+    def get_familia_by_id(self, id_familia: int) -> FamiliaOut:
         pass
